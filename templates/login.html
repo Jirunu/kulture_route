@@ -1,0 +1,146 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script>(function(){var h=localStorage.getItem('cr_hide_badges')==='1';var c=localStorage.getItem('cr_hide_chatbot')==='1';if(h)document.documentElement.setAttribute('data-hide-badges','1');if(c)document.documentElement.setAttribute('data-hide-chatbot','1');})();</script>
+<title>로그인 — KultureRoute</title>
+<link rel="icon" type="image/png" href="/static/culture/icon.png">
+<link href="https://hangeul.pstatic.net/hangeul_static/css/maru-buri.css" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'frontend/css/common.css' %}">
+<link rel="stylesheet" href="{% static 'frontend/css/login.css' %}">
+</head>
+<body>
+
+<nav>
+  <a href="/" class="logo">
+    <img src="{% static 'culture/icon.png' %}" alt="logo" class="logo-mark">
+    Kulture<span>Route</span>
+  </a>
+  <a href="/signup/" class="nav-link">회원가입</a>
+</nav>
+
+<div class="auth-wrap">
+  <div class="auth-card">
+    <div class="card-logo">
+      <img src="{% static 'culture/icon.png' %}" alt="logo" class="card-logo-mark">
+      <span class="card-logo-text">Kulture<span>Route</span></span>
+    </div>
+
+    <p class="card-eyebrow">Sign In</p>
+    <h1 class="card-title">로그인</h1>
+
+    <form id="login-form" novalidate>
+      <div class="form-group">
+        <label class="form-label" for="username">아이디</label>
+        <input class="form-input" id="username" type="text" placeholder="아이디를 입력하세요" autocomplete="username">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="password">비밀번호</label>
+        <input class="form-input" id="password" type="password" placeholder="비밀번호를 입력하세요" autocomplete="current-password">
+      </div>
+
+      <div class="error-msg" id="error-msg"></div>
+
+      <button class="submit-btn" type="submit" id="submit-btn">로그인</button>
+    </form>
+
+    <div class="error-msg" id="social-error-msg">간편 로그인에 실패했습니다. 잠시 후 다시 시도해 주세요.</div>
+
+    <div class="social-divider">또는</div>
+    <div class="social-login-group" id="social-login-group">
+      <a class="social-btn social-btn-kakao" href="/api/accounts/social/kakao/">
+        <svg class="social-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5C6.201 2.5 1.5 6.26 1.5 10.9c0 2.968 1.872 5.575 4.704 7.093l-.967 3.607a.375.375 0 0 0 .557.42l4.046-2.578A12.39 12.39 0 0 0 12 19.3c5.799 0 10.5-3.76 10.5-8.4S17.799 2.5 12 2.5z"/></svg>
+        카카오로 로그인
+      </a>
+      <a class="social-btn social-btn-naver" href="/api/accounts/social/naver/">
+        <svg class="social-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M16.273 12.845L7.376 0H0v24h7.727V11.155L16.624 24H24V0h-7.727z"/></svg>
+        네이버로 로그인
+      </a>
+    </div>
+
+    <div class="divider"></div>
+    <p class="card-footer">
+      아직 계정이 없으신가요? <a href="/signup/">회원가입</a>
+    </p>
+  </div>
+</div>
+
+<footer>
+  <div class="footer-logo">
+    <img src="{% static 'culture/icon.png' %}" alt="logo" class="logo-mark">
+    Kulture<span>Route</span>
+  </div>
+  <p class="footer-copy">© 2025 KultureRoute · 서울6반 1조</p>
+</footer>
+
+<script>
+// 간편 로그인 버튼에 next 파라미터 전달 + 실패 메시지 표시
+(() => {
+  const params = new URLSearchParams(location.search);
+  const next = params.get('next');
+  if (next) {
+    document.querySelectorAll('#social-login-group .social-btn').forEach(a => {
+      a.href += '?next=' + encodeURIComponent(next);
+    });
+  }
+  if (params.get('social_error')) {
+    document.getElementById('social-error-msg').classList.add('show');
+  }
+})();
+
+// 이미 로그인된 상태면 홈으로 이동
+(async () => {
+  try {
+    const res = await fetch('/api/accounts/me/');
+    if (res.ok) {
+      const next = new URLSearchParams(location.search).get('next') || '/';
+      location.replace(next);
+    }
+  } catch(e) {}
+})();
+
+document.getElementById('login-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const username = document.getElementById('username').value.trim();
+  const password = document.getElementById('password').value;
+  const errEl = document.getElementById('error-msg');
+  const btn = document.getElementById('submit-btn');
+
+  errEl.classList.remove('show');
+  btn.disabled = true;
+  btn.textContent = '로그인 중…';
+
+  try {
+    const res = await fetch('/api/accounts/login/', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({username, password})
+    });
+    const data = await res.json();
+
+    if (res.ok) {
+      const next = new URLSearchParams(location.search).get('next') || '/';
+      location.href = next;
+    } else {
+      errEl.textContent = data.detail || '로그인에 실패했습니다.';
+      errEl.classList.add('show');
+      btn.disabled = false;
+      btn.textContent = '로그인';
+    }
+  } catch(e) {
+    errEl.textContent = '서버에 연결할 수 없습니다. 잠시 후 다시 시도해 주세요.';
+    errEl.classList.add('show');
+    btn.disabled = false;
+    btn.textContent = '로그인';
+  }
+});
+
+// Enter 키 지원
+document.getElementById('username').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('password').focus();
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,428 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script>(function(){var h=localStorage.getItem('cr_hide_badges')==='1';var c=localStorage.getItem('cr_hide_chatbot')==='1';if(h)document.documentElement.setAttribute('data-hide-badges','1');if(c)document.documentElement.setAttribute('data-hide-chatbot','1');})();</script>
+<title>KultureRoute — 미리보기 (Preview)</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;600&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'frontend/css/common.css' %}">
+<link rel="stylesheet" href="{% static 'frontend/css/preview.css' %}">
+</head>
+<body>
+
+<!-- PREVIEW BANNER -->
+<div class="preview-banner">
+  <span class="preview-banner-text">KultureRoute — UI Preview (샘플 데이터)</span>
+  <div class="preview-tabs">
+    <button class="preview-tab active" onclick="switchView('places')">장소 목록</button>
+    <button class="preview-tab" onclick="switchView('detail')">장소 상세</button>
+    <button class="preview-tab" onclick="switchView('routes')">커뮤니티 코스</button>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav>
+  <a class="logo" onclick="switchView('places')">
+    <span class="logo-mark">文</span>
+    Kulture<span>Route</span>
+  </a>
+  <ul>
+    <li><a>시대별 탐색</a></li>
+    <li><a class="active" id="nav-places" onclick="switchView('places')">문화 장소</a></li>
+    <li><a>날씨 추천</a></li>
+    <li><a id="nav-routes" onclick="switchView('routes')">커뮤니티</a></li>
+  </ul>
+  <button class="btn-nav">로그인</button>
+</nav>
+
+<!-- ══════════════════ VIEW: PLACES ══════════════════ -->
+<div class="view active" id="view-places">
+  <div class="page-header">
+    <p class="page-eyebrow">문화 장소</p>
+    <h1 class="page-title">서울·경기 문화 명소</h1>
+    <p class="page-count" id="place-count">총 12곳</p>
+  </div>
+
+  <div class="filter-section">
+    <div class="filter-group">
+      <p class="filter-label">시대</p>
+      <div class="filter-pills" id="f-era">
+        <button class="pill active" data-val="">전체</button>
+        <button class="pill" data-val="three_kingdoms">삼국시대</button>
+        <button class="pill" data-val="goryeo">고려시대</button>
+        <button class="pill" data-val="joseon">조선시대</button>
+        <button class="pill" data-val="japanese">일제강점기</button>
+        <button class="pill" data-val="modern">현대</button>
+      </div>
+    </div>
+    <div class="filter-group">
+      <p class="filter-label">카테고리</p>
+      <div class="filter-pills" id="f-cat">
+        <button class="pill active" data-val="">전체</button>
+        <button class="pill" data-val="palace">궁궐·사찰</button>
+        <button class="pill" data-val="museum">박물관·미술관</button>
+        <button class="pill" data-val="historic">역사 유적</button>
+        <button class="pill" data-val="culture">문화 시설</button>
+        <button class="pill" data-val="park">공원·자연</button>
+      </div>
+    </div>
+    <div class="filter-group" style="display:flex;gap:48px;align-items:flex-start">
+      <div>
+        <p class="filter-label">지역</p>
+        <div class="filter-pills" id="f-reg">
+          <button class="pill active" data-val="">전체</button>
+          <button class="pill" data-val="seoul">서울</button>
+          <button class="pill" data-val="gyeonggi">경기</button>
+        </div>
+      </div>
+      <div>
+        <p class="filter-label">실내/실외</p>
+        <div class="filter-pills" id="f-indoor">
+          <button class="pill active" data-val="">전체</button>
+          <button class="pill" data-val="true">실내</button>
+          <button class="pill" data-val="false">실외</button>
+        </div>
+      </div>
+    </div>
+    <div class="filter-divider"></div>
+  </div>
+
+  <div style="position:relative;z-index:1;padding-bottom:80px">
+    <div class="place-grid" id="place-grid"></div>
+  </div>
+
+  <footer>
+    <div class="footer-logo"><span class="logo-mark">文</span>Kulture<span>Route</span></div>
+    <p class="footer-copy">© 2025 KultureRoute · 서울6반 1조</p>
+  </footer>
+</div>
+
+<!-- ══════════════════ VIEW: DETAIL ══════════════════ -->
+<div class="view" id="view-detail">
+  <div class="breadcrumb">
+    <a onclick="switchView('places')">홈</a>
+    <span style="opacity:.4">›</span>
+    <a onclick="switchView('places')">문화 장소</a>
+    <span style="opacity:.4">›</span>
+    <span id="bc-name">장소 이름</span>
+  </div>
+  <div style="padding:16px 52px 0;position:relative;z-index:1">
+    <button class="back-btn" onclick="switchView('places')">← 목록으로</button>
+  </div>
+  <div class="place-hero" id="detail-hero"></div>
+  <div class="desc-sec" id="detail-desc"></div>
+  <div class="reviews-sec">
+    <div class="reviews-hdr">
+      <h2 class="reviews-ttl">리뷰</h2>
+      <div id="detail-avg"></div>
+    </div>
+    <div id="detail-reviews"></div>
+    <div class="auth-note"><p>리뷰를 작성하려면 <strong>로그인</strong>이 필요합니다.</p></div>
+  </div>
+  <footer>
+    <div class="footer-logo"><span class="logo-mark">文</span>Kulture<span>Route</span></div>
+    <p class="footer-copy">© 2025 KultureRoute · 서울6반 1조</p>
+  </footer>
+</div>
+
+<!-- ══════════════════ VIEW: ROUTES ══════════════════ -->
+<div class="view" id="view-routes">
+  <div class="routes-hdr">
+    <div>
+      <p class="page-eyebrow">커뮤니티</p>
+      <h1 class="page-title">공유 코스</h1>
+      <p style="font-size:13px;color:var(--muted);margin-top:10px;line-height:1.75">다른 유저들이 만든 동선 코스를 탐색하고 나만의 코스를 공유해 보세요.</p>
+    </div>
+    <button class="create-btn-r">+ 코스 만들기</button>
+  </div>
+  <div style="position:relative;z-index:1;padding-bottom:80px">
+    <div class="route-grid" id="route-grid"></div>
+  </div>
+  <footer>
+    <div class="footer-logo"><span class="logo-mark">文</span>Kulture<span>Route</span></div>
+    <p class="footer-copy">© 2025 KultureRoute · 서울6반 1조</p>
+  </footer>
+</div>
+
+<script>
+/* ─── SAMPLE DATA ─── */
+const PLACES = [
+  {id:1, name:'경복궁', category:'palace', cat_d:'궁궐·사찰', era:'joseon', era_d:'조선시대',
+   region:'seoul', reg_d:'서울', theme:'조선시대 궁궐·유적', is_indoor:false,
+   address:'서울 종로구 사직로 161', fee:3000, open:'09:00~18:00 (화요일 휴관)',
+   avg_rating:4.8, review_count:324,
+   desc:'조선왕조의 법궁(法宮)으로, 1395년 태조 이성계가 창건하였다. 근정전·경회루·향원정 등 뛰어난 건축물이 남아 있으며, 경내에 국립민속박물관이 위치한다. 유네스코 세계문화유산 잠정목록에 등재된 조선 최대의 궁궐.',
+   char:'景'},
+  {id:2, name:'창덕궁', category:'palace', cat_d:'궁궐·사찰', era:'joseon', era_d:'조선시대',
+   region:'seoul', reg_d:'서울', theme:'조선시대 궁궐·유적', is_indoor:false,
+   address:'서울 종로구 율곡로 99', fee:3000, open:'09:00~17:30 (월요일 휴관)',
+   avg_rating:4.7, review_count:287,
+   desc:'유네스코 세계문화유산으로 등재된 조선의 이궁(離宮). 자연 지형을 살린 후원(비원)이 유명하며, 조선 역대 왕들이 가장 오래 머문 궁궐이다.',
+   char:'宮'},
+  {id:3, name:'덕수궁', category:'palace', cat_d:'궁궐·사찰', era:'joseon', era_d:'조선시대',
+   region:'seoul', reg_d:'서울', theme:'조선시대 궁궐·유적', is_indoor:false,
+   address:'서울 중구 세종대로 99', fee:1000, open:'09:00~21:00 (월요일 휴관)',
+   avg_rating:4.6, review_count:198,
+   desc:'조선 말기와 대한제국 시대의 역사를 간직한 궁궐. 서양식 건물 석조전과 전통 전각이 공존하는 독특한 공간이다.',
+   char:'宮'},
+  {id:4, name:'국립중앙박물관', category:'museum', cat_d:'박물관·미술관', era:'modern', era_d:'현대',
+   region:'seoul', reg_d:'서울', theme:'현대 문화·예술', is_indoor:true,
+   address:'서울 용산구 서빙고로 137', fee:0, open:'10:00~18:00 (수·토 ~21:00, 월요일 휴관)',
+   avg_rating:4.9, review_count:512,
+   desc:'한국 최대 규모의 국립박물관으로 선사시대부터 근현대까지 총 30만여 점의 유물을 소장하고 있다.',
+   char:'博'},
+  {id:5, name:'국립민속박물관', category:'museum', cat_d:'박물관·미술관', era:'modern', era_d:'현대',
+   region:'seoul', reg_d:'서울', theme:'현대 문화·예술', is_indoor:true,
+   address:'서울 종로구 삼청로 37', fee:0, open:'10:00~18:00 (화요일 휴관)',
+   avg_rating:4.5, review_count:156,
+   desc:'경복궁 내에 위치한 민속박물관으로 한국인의 전통 생활양식과 민속 문화를 전시한다.',
+   char:'博'},
+  {id:6, name:'국립현대미술관 서울', category:'museum', cat_d:'박물관·미술관', era:'modern', era_d:'현대',
+   region:'seoul', reg_d:'서울', theme:'현대 문화·예술', is_indoor:true,
+   address:'서울 종로구 삼청로 30', fee:4000, open:'10:00~18:00 (금·토 ~21:00, 월요일 휴관)',
+   avg_rating:4.7, review_count:203,
+   desc:'한국 근현대 미술의 흐름을 총망라하는 국립미술관. 역사적 건물을 재활용한 독특한 전시 공간이 특징이다.',
+   char:'藝'},
+  {id:7, name:'전쟁기념관', category:'museum', cat_d:'박물관·미술관', era:'modern', era_d:'현대',
+   region:'seoul', reg_d:'서울', theme:'현대 문화·예술', is_indoor:true,
+   address:'서울 용산구 이태원로 29', fee:0, open:'09:30~18:00 (월요일 휴관)',
+   avg_rating:4.6, review_count:341,
+   desc:'한국전쟁을 비롯한 근현대 전쟁 역사를 기록·전시하는 기념관.',
+   char:'博'},
+  {id:8, name:'서대문형무소역사관', category:'historic', cat_d:'역사 유적', era:'japanese', era_d:'일제강점기',
+   region:'seoul', reg_d:'서울', theme:'일제강점기 역사', is_indoor:true,
+   address:'서울 서대문구 통일로 251', fee:3000, open:'09:30~18:00 (월요일 휴관)',
+   avg_rating:4.8, review_count:427,
+   desc:'일제강점기 독립운동가들이 투옥·고문·처형된 역사적 현장. 독립운동의 정신을 직접 체험할 수 있는 교육 공간이다.',
+   char:'史'},
+  {id:9, name:'남산골한옥마을', category:'culture', cat_d:'문화 시설', era:'joseon', era_d:'조선시대',
+   region:'seoul', reg_d:'서울', theme:'조선시대 궁궐·유적', is_indoor:false,
+   address:'서울 중구 퇴계로34길 28', fee:0, open:'09:00~21:00 (화요일 휴관)',
+   avg_rating:4.4, review_count:189,
+   desc:'서울 시내 다섯 채의 전통 한옥을 이전 복원한 전통문화 체험 공간. 연못과 정자가 있는 아름다운 정원이 조성되어 있다.',
+   char:'景'},
+  {id:10, name:'수원화성', category:'historic', cat_d:'역사 유적', era:'joseon', era_d:'조선시대',
+   region:'gyeonggi', reg_d:'경기', theme:'조선시대 궁궐·유적', is_indoor:false,
+   address:'경기 수원시 팔달구 행궁로 11', fee:1000, open:'09:00~18:00',
+   avg_rating:4.7, review_count:441,
+   desc:'유네스코 세계문화유산으로 등재된 조선시대 성곽. 정조가 아버지 사도세자의 묘를 이장하면서 1796년 완공한 계획도시의 핵심 시설이다.',
+   char:'城'},
+  {id:11, name:'조선왕릉 동구릉', category:'historic', cat_d:'역사 유적', era:'joseon', era_d:'조선시대',
+   region:'gyeonggi', reg_d:'경기', theme:'조선시대 궁궐·유적', is_indoor:false,
+   address:'경기 구리시 동구릉로 197', fee:1000, open:'09:00~18:00 (월요일 휴관)',
+   avg_rating:4.5, review_count:163,
+   desc:'조선 태조 이성계의 건원릉을 포함해 9기 17릉이 모인 유네스코 세계문화유산. 울창한 소나무 숲 사이로 능침들이 자리하고 있다.',
+   char:'陵'},
+  {id:12, name:'한국민속촌', category:'culture', cat_d:'문화 시설', era:'joseon', era_d:'조선시대',
+   region:'gyeonggi', reg_d:'경기', theme:'조선시대 궁궐·유적', is_indoor:false,
+   address:'경기 용인시 기흥구 민속촌로 90', fee:25000, open:'10:00~18:00',
+   avg_rating:4.3, review_count:520,
+   desc:'조선시대 전통 생활 문화를 재현한 야외 민속 박물관. 270여 채의 전통 가옥과 다양한 민속 공예·공연을 직접 체험할 수 있다.',
+   char:'村'},
+];
+
+const REVIEWS = {
+  1: [
+    {username:'history_lover', rating:5, content:'근정전 앞에 서면 조선왕조의 위엄이 느껴집니다. 특히 가을 단풍이 물들었을 때 방문하면 최고입니다. 경회루도 꼭 들러보세요.', date:'2025-04-12'},
+    {username:'seoulwalk', rating:5, content:'광화문 광장에서 걸어서 이동하기 편리하고, 입장료 대비 볼거리가 매우 많아요. 국립민속박물관과 함께 하루 코스로 딱입니다.', date:'2025-03-28'},
+    {username:'travel_kr', rating:4, content:'넓은 공간을 모두 돌아보려면 2~3시간은 필요합니다. 편안한 신발 필수! 야간 개장 때도 방문해 보고 싶어요.', date:'2025-02-15'},
+  ],
+  4: [
+    {username:'museum_fan', rating:5, content:'세계적 수준의 전시 퀄리티를 자랑합니다. 국보급 유물들을 가까이서 볼 수 있어 감동이에요. 무료입장이라는 게 믿기지 않을 정도.', date:'2025-05-01'},
+    {username:'family_tour', rating:5, content:'어린이 전시관도 잘 되어 있어서 가족 나들이로 완벽합니다. 주말은 사람이 많으니 평일 방문 추천!', date:'2025-04-20'},
+  ],
+};
+
+const ROUTES = [
+  {id:1, title:'조선 궁궐 순례 코스', username:'history_lover', mode:'theme', mode_d:'테마 기준',
+   dist:4200, time:180, likes:42,
+   places:['경복궁','창덕궁','덕수궁']},
+  {id:2, title:'서울 박물관 투어', username:'museum_fan', mode:'distance', mode_d:'거리 기준',
+   dist:2800, time:240, likes:31,
+   places:['국립중앙박물관','국립민속박물관','전쟁기념관']},
+  {id:3, title:'경기도 역사 나들이', username:'seoulwalk', mode:'time', mode_d:'소요시간 기준',
+   dist:65000, time:360, likes:18,
+   places:['수원화성','조선왕릉 동구릉','한국민속촌']},
+  {id:4, title:'종로 한바퀴 문화 산책', username:'travel_kr', mode:'distance', mode_d:'거리 기준',
+   dist:3100, time:150, likes:27,
+   places:['경복궁','창덕궁','남산골한옥마을','국립현대미술관 서울']},
+];
+
+/* ─── FILTER STATE ─── */
+const filters = {era:'', cat:'', reg:'', indoor:''};
+
+/* ─── VIEW SWITCHER ─── */
+function switchView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+  document.querySelectorAll('.preview-tab').forEach((t,i) => {
+    t.classList.toggle('active', ['places','detail','routes'][i] === name);
+  });
+  document.getElementById('nav-places').classList.toggle('active', name === 'places' || name === 'detail');
+  document.getElementById('nav-routes').classList.toggle('active', name === 'routes');
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+/* ─── HELPERS ─── */
+const CHAR_MAP = {historic:'史',museum:'博',park:'園',palace:'宮',culture:'景',etc:'景'};
+function stars(n, sz=14) {
+  return [1,2,3,4,5].map(i =>
+    `<span style="color:${i<=n?'var(--gold)':'var(--border-lt)'};font-size:${sz}px">★</span>`
+  ).join('');
+}
+function feeStr(f) { return f === 0 ? '무료' : f.toLocaleString() + '원'; }
+
+/* ─── PLACES RENDER ─── */
+function filteredPlaces() {
+  return PLACES.filter(p => {
+    if (filters.era && p.era !== filters.era) return false;
+    if (filters.cat && p.category !== filters.cat) return false;
+    if (filters.reg && p.region !== filters.reg) return false;
+    if (filters.indoor === 'true' && !p.is_indoor) return false;
+    if (filters.indoor === 'false' && p.is_indoor) return false;
+    return true;
+  });
+}
+
+function renderPlaces() {
+  const list = filteredPlaces();
+  document.getElementById('place-count').textContent = `총 ${list.length}곳`;
+  const grid = document.getElementById('place-grid');
+  if (!list.length) {
+    grid.innerHTML = '<div class="state-box"><div class="state-char">空</div><p>조건에 맞는 장소가 없습니다.</p></div>';
+    return;
+  }
+  grid.innerHTML = list.map(p => `
+    <div class="place-card" onclick="showDetail(${p.id})">
+      <div class="place-img-ph">${p.char || CHAR_MAP[p.category] || '景'}</div>
+      <div class="place-body">
+        <div class="place-tags">
+          <span class="tag">${p.theme}</span>
+          <span class="tag tag-in">${p.is_indoor ? '실내' : '실외'}</span>
+        </div>
+        <h3 class="place-name">${p.name}</h3>
+        <p class="place-addr">${p.address}</p>
+        <div class="place-meta">
+          <span class="rating">${stars(Math.round(p.avg_rating))} <span style="color:var(--ink);margin-left:3px">${p.avg_rating}</span> <span style="color:var(--muted)">(${p.review_count.toLocaleString()})</span></span>
+          <span class="place-fee">${feeStr(p.fee)}</span>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+/* ─── PILLS INIT ─── */
+function initPills(groupId, key) {
+  document.getElementById(groupId).querySelectorAll('.pill').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.getElementById(groupId).querySelectorAll('.pill').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      filters[key] = btn.dataset.val;
+      renderPlaces();
+    });
+  });
+}
+
+/* ─── DETAIL RENDER ─── */
+function showDetail(id) {
+  const p = PLACES.find(x => x.id === id);
+  if (!p) return;
+  document.getElementById('bc-name').textContent = p.name;
+
+  document.getElementById('detail-hero').innerHTML = `
+    <div class="detail-img">${p.char || CHAR_MAP[p.category] || '景'}</div>
+    <div style="padding:8px 0">
+      <div class="place-tags">
+        <span class="tag">${p.theme}</span>
+        <span class="tag">${p.cat_d}</span>
+        <span class="tag tag-in">${p.is_indoor ? '실내' : '실외'}</span>
+        <span class="tag">${p.reg_d}</span>
+      </div>
+      <h1 class="detail-name">${p.name}</h1>
+      <div class="detail-rating">
+        <span>${stars(Math.round(p.avg_rating), 20)}</span>
+        <span class="rat-val">${p.avg_rating}</span>
+        <span style="font-size:12px;color:var(--muted)">(리뷰 ${p.review_count.toLocaleString()}개)</span>
+      </div>
+      <div class="info-grid">
+        <div class="info-item"><p class="info-lbl">주소</p><p class="info-v">${p.address}</p></div>
+        <div class="info-item"><p class="info-lbl">입장료</p><p class="info-v ac">${feeStr(p.fee)}</p></div>
+        <div class="info-item"><p class="info-lbl">운영 시간</p><p class="info-v">${p.open}</p></div>
+        <div class="info-item"><p class="info-lbl">시대 테마</p><p class="info-v">${p.era_d} — ${p.theme}</p></div>
+      </div>
+    </div>`;
+
+  document.getElementById('detail-desc').innerHTML = `
+    <p class="sec-eyebrow">장소 설명</p>
+    <p class="desc-txt">${p.desc}</p>`;
+
+  const reviews = REVIEWS[p.id] || [];
+  if (reviews.length) {
+    const avg = (reviews.reduce((s,r) => s + r.rating, 0) / reviews.length).toFixed(1);
+    document.getElementById('detail-avg').innerHTML = `
+      ${stars(Math.round(+avg), 13)}
+      <span style="font-family:'Noto Serif KR',serif;font-size:22px;color:var(--accent);margin-left:6px">${avg}</span>
+      <span style="font-size:12px;color:var(--muted);margin-left:4px">(${reviews.length}개)</span>`;
+    document.getElementById('detail-reviews').innerHTML = reviews.map(r => `
+      <div class="review-item">
+        <div class="review-meta">
+          <div><span class="reviewer">${r.username}</span><span class="rev-stars">${stars(r.rating)}</span></div>
+          <span class="rev-date">${r.date}</span>
+        </div>
+        <p class="rev-txt">${r.content}</p>
+      </div>`).join('');
+  } else {
+    document.getElementById('detail-avg').innerHTML = '';
+    document.getElementById('detail-reviews').innerHTML = '<p style="padding:32px 0;color:var(--muted);font-size:14px">아직 리뷰가 없습니다. 첫 번째 리뷰를 작성해 보세요.</p>';
+  }
+
+  switchView('detail');
+}
+
+/* ─── ROUTES RENDER ─── */
+function renderRoutes() {
+  document.getElementById('route-grid').innerHTML = ROUTES.map(r => `
+    <div class="route-card">
+      <div class="route-hdr">
+        <h3 class="route-ttl">${r.title}</h3>
+        <span class="route-mode-tag">${r.mode_d}</span>
+      </div>
+      <div class="route-meta">
+        <span class="route-mi"><strong>${r.places.length}</strong>개 장소</span>
+        <span class="route-mi">거리 <strong>${(r.dist/1000).toFixed(1)}km</strong></span>
+        <span class="route-mi">소요 <strong>${r.time}분</strong></span>
+      </div>
+      <div class="route-places">
+        ${r.places.map(n => `<span class="chip">${n}</span>`).join('')}
+      </div>
+      <div class="route-footer">
+        <span class="route-author">${r.username}</span>
+        <button class="like-btn" onclick="likeRoute(this, ${r.id})">
+          <span>♡</span> <span class="lc">${r.likes}</span>
+        </button>
+      </div>
+    </div>`).join('');
+}
+
+function likeRoute(btn, id) {
+  const route = ROUTES.find(r => r.id === id);
+  if (!route) return;
+  if (!btn.classList.contains('liked')) {
+    route.likes++;
+    btn.querySelector('.lc').textContent = route.likes;
+    btn.querySelector('span').textContent = '♥';
+    btn.classList.add('liked');
+  }
+}
+
+/* ─── INIT ─── */
+initPills('f-era', 'era');
+initPills('f-cat', 'cat');
+initPills('f-reg', 'reg');
+initPills('f-indoor', 'indoor');
+renderPlaces();
+renderRoutes();
+</script>
+</body>
+</html>

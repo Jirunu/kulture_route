@@ -1,0 +1,43 @@
+from django.db import models
+from django.contrib.auth.models import User
+
+
+class Profile(models.Model):
+    user           = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    selected_badge = models.CharField(max_length=40, blank=True, default='', verbose_name='대표 칭호')
+    nickname       = models.CharField(max_length=30, unique=True, null=True, blank=True, verbose_name='닉네임')
+    profile_image  = models.ImageField(upload_to='profiles/', blank=True, null=True, verbose_name='프로필 사진')
+    scolded_message_ids = models.JSONField(default=list, blank=True, verbose_name='나리에게 혼난 멘트 id 목록')
+    chat_count       = models.PositiveIntegerField(default=0, verbose_name='나리와 대화한 횟수')
+    night_chat_count = models.PositiveIntegerField(default=0, verbose_name='심야(00~06시) 대화 횟수')
+
+    class Meta:
+        verbose_name = '프로필'
+        verbose_name_plural = '프로필 목록'
+
+    def __str__(self):
+        return f'{self.user.username}의 프로필'
+
+    @property
+    def display_name(self):
+        return self.nickname or self.user.username
+
+    @property
+    def profile_image_url(self):
+        if self.profile_image:
+            return self.profile_image.url
+        return '/static/culture/images/default_profile.png'
+
+
+class UserFollow(models.Model):
+    follower  = models.ForeignKey(User, on_delete=models.CASCADE, related_name='following_set')
+    following = models.ForeignKey(User, on_delete=models.CASCADE, related_name='followers_set')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('follower', 'following')
+        verbose_name = '팔로우'
+        verbose_name_plural = '팔로우 목록'
+
+    def __str__(self):
+        return f'{self.follower.username} → {self.following.username}'

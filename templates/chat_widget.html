@@ -1,0 +1,186 @@
+{% load static %}
+<!-- ── FLOATING CHAT WIDGET ── -->
+<button class="chat-fab" id="chat-fab" title="나리와 대화하기 (드래그해서 위치 이동 가능)">
+  <img src="{% static 'culture/images/character.png' %}" alt="나리" class="chat-fab-img">
+</button>
+
+<div class="chat-widget" id="chat-widget">
+  <div class="chat-widget-header">
+    <img src="{% static 'culture/images/character.png' %}" alt="나리" class="chat-avatar chat-avatar-header">
+    <div>
+      <span class="chat-widget-title">나리</span>
+      <span class="chat-widget-sub">KultureRoute 문화 해설 로봇</span>
+    </div>
+    <button class="chat-widget-close" onclick="toggleChatWidget()">✕</button>
+  </div>
+  <div class="chat-messages" id="chat-messages">
+    <div class="chat-msg ai">
+      <img src="{% static 'culture/images/character.png' %}" alt="나리" class="chat-avatar">
+      <div class="chat-bubble">어서 오너라, 문화 해설 로봇 나리이니라! 서울·경기 문화 명소에 대해 무엇이든 물어보거라.</div>
+    </div>
+  </div>
+  <div class="chat-input-wrap">
+    <input class="chat-input" id="chat-input" type="text" placeholder="나리에게 물어보세요…" maxlength="300"
+      onkeydown="if(event.key==='Enter')sendWidgetChat()">
+    <button class="chat-send" onclick="sendWidgetChat()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+      </svg>
+    </button>
+  </div>
+</div>
+
+<link rel="stylesheet" href="{% static 'frontend/css/common.css' %}">
+<link rel="stylesheet" href="{% static 'frontend/css/chat_widget.css' %}">
+
+<script>
+(function () {
+  function _csrf() {
+    return document.cookie.split(';').find(r => r.trim().startsWith('csrftoken='))?.split('=')[1] || '';
+  }
+
+  /* ── 드래그로 챗봇 캐릭터 위치 이동 ─────────────── */
+  const FAB_POS_KEY = 'cr_chat_fab_pos';
+  const fab = document.getElementById('chat-fab');
+  const widget = document.getElementById('chat-widget');
+  let dragging = false, moved = false, startX = 0, startY = 0, origX = 0, origY = 0;
+
+  function clamp(val, min, max) { return Math.min(Math.max(val, min), max); }
+
+  function setFabPosition(x, y, persist) {
+    const w = fab.offsetWidth || 120, h = fab.offsetHeight || 162;
+    x = clamp(x, 0, window.innerWidth - w);
+    y = clamp(y, 0, window.innerHeight - h);
+    fab.style.left = x + 'px';
+    fab.style.top = y + 'px';
+    if (persist) localStorage.setItem(FAB_POS_KEY, JSON.stringify({ x, y }));
+    positionWidgetPanel();
+  }
+
+  function positionWidgetPanel() {
+    const fabRect = fab.getBoundingClientRect();
+    const panelW = widget.offsetWidth || 340, panelH = widget.offsetHeight || 420;
+    // 기본적으로 캐릭터의 좌측 위쪽에 패널을 띄우고, 화면 밖으로 나가면 반대쪽으로 보정
+    let x = fabRect.left - panelW - 12;
+    if (x < 8) x = Math.min(fabRect.right + 12, window.innerWidth - panelW - 8);
+    x = clamp(x, 8, window.innerWidth - panelW - 8);
+    let y = fabRect.top + fabRect.height * 0.15 - panelH;
+    if (y < 8) y = clamp(fabRect.bottom - panelH * 0.2, 8, window.innerHeight - panelH - 8);
+    y = clamp(y, 8, window.innerHeight - panelH - 8);
+    widget.style.left = x + 'px';
+    widget.style.top = y + 'px';
+  }
+
+  function loadFabPosition() {
+    let pos = null;
+    try { pos = JSON.parse(localStorage.getItem(FAB_POS_KEY) || 'null'); } catch (e) {}
+    const w = fab.offsetWidth || 120, h = fab.offsetHeight || 162;
+    if (pos && typeof pos.x === 'number' && typeof pos.y === 'number') {
+      setFabPosition(pos.x, pos.y, false);
+    } else {
+      setFabPosition(window.innerWidth - w - 18, window.innerHeight - h, false);
+    }
+  }
+
+  fab.addEventListener('pointerdown', (e) => {
+    dragging = true; moved = false;
+    startX = e.clientX; startY = e.clientY;
+    const rect = fab.getBoundingClientRect();
+    origX = rect.left; origY = rect.top;
+    fab.classList.add('dragging');
+    fab.setPointerCapture(e.pointerId);
+  });
+
+  fab.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    const dx = e.clientX - startX, dy = e.clientY - startY;
+    if (Math.abs(dx) > 4 || Math.abs(dy) > 4) moved = true;
+    if (moved) setFabPosition(origX + dx, origY + dy, false);
+  });
+
+  function endDrag(e) {
+    if (!dragging) return;
+    dragging = false;
+    fab.classList.remove('dragging');
+    if (moved) {
+      const rect = fab.getBoundingClientRect();
+      setFabPosition(rect.left, rect.top, true);
+    } else {
+      toggleChatWidget();
+    }
+  }
+  fab.addEventListener('pointerup', endDrag);
+  fab.addEventListener('pointercancel', endDrag);
+
+  window.addEventListener('resize', () => {
+    const rect = fab.getBoundingClientRect();
+    setFabPosition(rect.left, rect.top, true);
+  });
+
+  loadFabPosition();
+
+  window.toggleChatWidget = function () {
+    const w = document.getElementById('chat-widget');
+    w.classList.toggle('open');
+    if (w.classList.contains('open')) {
+      positionWidgetPanel();
+      document.getElementById('chat-input').focus();
+    }
+  };
+
+  function appendMsg(role, text, isTyping) {
+    const wrap = document.getElementById('chat-messages');
+    const div = document.createElement('div');
+    div.className = `chat-msg ${role}`;
+    if (role === 'ai') {
+      const avatar = document.createElement('img');
+      avatar.src = "{% static 'culture/images/character.png' %}";
+      avatar.alt = '나리';
+      avatar.className = 'chat-avatar';
+      div.appendChild(avatar);
+    }
+    const bubble = document.createElement('div');
+    bubble.className = 'chat-bubble' + (isTyping ? ' typing' : '');
+    bubble.textContent = text;
+    div.appendChild(bubble);
+    wrap.appendChild(div);
+    wrap.scrollTop = wrap.scrollHeight;
+    return bubble;
+  }
+
+  let _busy = false;
+  window.sendWidgetChat = async function () {
+    if (_busy) return;
+    const input = document.getElementById('chat-input');
+    const msg = input.value.trim();
+    if (!msg) return;
+    _busy = true;
+    input.value = '';
+    appendMsg('user', msg);
+    const typingBubble = appendMsg('ai', '나리가 생각하는 중…', true);
+    try {
+      const res = await fetch('/api/ai/chat/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': _csrf() },
+        body: JSON.stringify({ message: msg }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        typingBubble.textContent = data.reply || data.message || '응답을 받지 못했습니다.';
+      } else if (res.status === 401 || res.status === 403) {
+        typingBubble.textContent = '로그인 후 이용하실 수 있습니다.';
+      } else {
+        typingBubble.textContent = 'AI 서비스가 현재 준비 중입니다. 곧 이용 가능합니다!';
+      }
+    } catch (e) {
+      typingBubble.textContent = '연결 오류가 발생했습니다.';
+    }
+    typingBubble.classList.remove('typing');
+    _busy = false;
+  };
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') document.getElementById('chat-widget').classList.remove('open');
+  });
+})();
+</script>
