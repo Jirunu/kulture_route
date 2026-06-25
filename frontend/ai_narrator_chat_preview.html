@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>나리 AI 해설사 — 캡처용 예시</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/common.css">
+<link rel="stylesheet" href="css/app.css">
+<style>
+  /* 캡처 배경용 — 실제 앱은 night.gif 위에 떠 있지만, 캡처 편의를 위해 단색 네이비로 대체 */
+  body { background: #0A1830; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+  .jchat-box-wrap { width: 340px; height: 480px; }
+  .jchat-box-wrap .jchat-box { height: 100%; }
+</style>
+</head>
+<body>
+
+<div class="jchat-box-wrap">
+  <div class="jchat-box">
+    <div class="jchat-header">
+      <img src="../culture/static/culture/images/character.png" alt="나리" class="jchat-avatar-header">
+      실시간 AI 해설사 · 나리
+    </div>
+    <div class="jchat-messages" id="journey-chat-messages">
+      <div class="jchat-msg ai">
+        <img src="../culture/static/culture/images/character.png" alt="나리" class="jchat-avatar">
+        <div class="jchat-bubble">어서 오너라, 문화 해설 로봇 나리이니라! 지금 보고 있는 장소에 대해 무엇이든 물어보거라.</div>
+      </div>
+      <div class="jchat-msg user">
+        <div class="jchat-bubble">세종대왕이 누구고 어떤 일을 이룬 사람이야?</div>
+      </div>
+      <div class="jchat-msg ai">
+        <img src="../culture/static/culture/images/character.png" alt="나리" class="jchat-avatar">
+        <div class="jchat-bubble">세종대왕은 조선의 네 번째 임금으로, 백성을 가장 귀히 여긴 성군으로 이름이 높느니라. 1443년 훈민정음, 곧 한글을 창제하여 누구나 글을 읽고 쓸 수 있게 하였고, 측우기·혼천의 같은 과학 기구를 만들어 농사와 천문을 살피셨다네. 4군 6진을 개척해 국경을 굳건히 하고 음악과 법제도까지 정비하시어, 조선의 기틀을 단단히 세운 임금이시니라.</div>
+      </div>
+    </div>
+    <div class="jchat-input-wrap">
+      <input class="jchat-input" type="text" placeholder="나리에게 물어보세요…" maxlength="300">
+      <button class="jchat-send">↑</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
