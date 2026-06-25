@@ -1483,6 +1483,22 @@ async function sendJourneyChat() {
   if (!msg) return;
   _journeyChatBusy = true;
   input.value = '';
+
+  /* 지금 보고 있는 장소 정보를 함께 보내 "이 장소에 대해" 질문하면 그 장소 기준으로 답하게 함 */
+  const curPlace = _journeyPlaces[_journeyStep];
+  const curDetail = curPlace ? (_journeyDetails[curPlace.id] || {}) : {};
+  const place = curPlace ? {
+    name: curPlace.name,
+    category: curPlace.category_display || curPlace.category,
+    region: curPlace.region_display || curPlace.region,
+    era: curPlace.theme_name || '',
+    description: curDetail.description || '',
+  } : null;
+  const history = _journeyChatLog
+    .filter(m => !m.typing)
+    .slice(-10)
+    .map(m => ({ role: m.role === 'ai' ? 'assistant' : 'user', content: m.text }));
+
   _journeyChatLog.push({ role: 'user', text: msg });
   _journeyChatLog.push({ role: 'ai', text: '나리가 생각하는 중…', typing: true });
   renderJourneyChatLog();
@@ -1491,7 +1507,7 @@ async function sendJourneyChat() {
     const res = await fetch('/api/ai/chat/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrf() },
-      body: JSON.stringify({ message: msg }),
+      body: JSON.stringify({ message: msg, place, history }),
     });
     if (res.ok) {
       const data = await res.json();

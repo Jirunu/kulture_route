@@ -142,11 +142,29 @@ def guardrail(request):
     return JsonResponse({'is_valid': is_valid, 'reason': reason})
 
 
+def _build_place_context(place):
+    """저니 모드에서 현재 보고 있는 장소 정보를 시스템 프롬프트에 덧붙일 텍스트로 변환."""
+    if not place or not place.get('name'):
+        return ''
+    lines = [f'[현재 위치] 사용자는 지금 여행 중 "{place["name"]}"을 보고 있다.']
+    if place.get('category'):
+        lines.append(f'분류: {place["category"]}')
+    if place.get('region'):
+        lines.append(f'지역: {place["region"]}')
+    if place.get('era'):
+        lines.append(f'시대 테마: {place["era"]}')
+    if place.get('description'):
+        lines.append(f'장소 설명: {place["description"][:300]}')
+    lines.append('사용자가 이 장소나 "여기"·"이곳"에 대해 물으면 위 정보를 바탕으로 자세히 설명하라.')
+    return '\n\n' + '\n'.join(lines)
+
+
 @require_http_methods(['POST'])
 @login_required_json
 def chat(request):
     """
-    POST /api/ai/chat/ — body: { question 또는 message, history? }
+    POST /api/ai/chat/ — body: { question 또는 message, history?, place?: {name, category, region, era, description} }
+    place가 주어지면 "이 장소"에 대한 질문에 그 정보를 바탕으로 답변한다(저니 모드 인라인 챗봇용).
     → { is_valid, answer, reply, message } (reply/message는 answer와 동일값,
     플로팅 챗봇·저니모드 위젯이 reply/message 필드를 기대하기 때문)
     """
@@ -169,7 +187,8 @@ def chat(request):
         return JsonResponse({'is_valid': False, 'reason': reason, 'reply': blocked_msg, 'message': blocked_msg})
 
     history = data.get('history', [])
-    messages = [{'role': 'system', 'content': CHAT_SYSTEM_PROMPT}]
+    system_content = CHAT_SYSTEM_PROMPT + _build_place_context(data.get('place'))
+    messages = [{'role': 'system', 'content': system_content}]
     for turn in history[-10:]:
         role = turn.get('role')
         if role in ('user', 'assistant') and turn.get('content'):
