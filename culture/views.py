@@ -223,6 +223,13 @@ def create_review(request, place_pk):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+def _save_route_path(route):
+    """코스 생성/수정 시점에 실제 경로(곡선)를 1회 계산해 path_data에 저장한다."""
+    ordered = [rp.place for rp in route.routeplace_set.select_related('place').order_by('order')]
+    route.path_data = compute_route_path(ordered, route.transport_mode) if len(ordered) >= 2 else []
+    route.save(update_fields=['path_data'])
+
+
 # -----------------------------------------------
 # F814 - route_recommend
 # 동선 코스 자동 생성 및 목록 조회
@@ -245,7 +252,8 @@ def route_recommend(request):
     # POST
     serializer = RouteCreateSerializer(data=request.data)
     if serializer.is_valid():
-        serializer.save(user=request.user)
+        route = serializer.save(user=request.user)
+        _save_route_path(route)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -273,7 +281,9 @@ def route_detail(request, route_pk):
     if request.method == 'PUT':
         serializer = RouteCreateSerializer(route, data=request.data, partial=True)
         if serializer.is_valid():
-            serializer.save()
+            route = serializer.save()
+            if 'place_ids' in request.data or 'transport_mode' in request.data:
+                _save_route_path(route)
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -701,6 +711,19 @@ _DEFAULT_VISIT_MIN = 55
 _REC_TRANSPORT_SPEED_KMH = {'walk': 4.8, 'bike': 15, 'car': 25}
 # 관람시간 대비 이동시간이 이 비율(+최소 20분 여유)을 넘으면 비효율적인 동선으로 보고 제외한다.
 _MAX_TRAVEL_TO_VISIT_RATIO = 1.5
+_AUTO_RADIUS_MIN_KM = 4
+_AUTO_RADIUS_MAX_KM = 40
+
+
+def _auto_radius_km(duration_hours, transport='walk'):
+    """
+    동선 범위(후보 탐색용 지름)를 유저가 직접 정하지 않고, 소요시간·이동수단으로부터 추정한다.
+    소요시간 중 일부(약 40%)를 이동에 쓴다고 가정해 그 시간 동안 갈 수 있는 거리를 지름으로 삼는다.
+    실제 최종 동선의 적합성은 _trim_by_time_budget()의 시간 예산 검사가 따로 보장한다.
+    """
+    speed_kmh = _REC_TRANSPORT_SPEED_KMH.get(transport, _REC_TRANSPORT_SPEED_KMH['walk'])
+    estimated = speed_kmh * duration_hours * 0.4
+    return max(_AUTO_RADIUS_MIN_KM, min(_AUTO_RADIUS_MAX_KM, estimated))
 
 
 def _trim_by_time_budget(selected_places, duration_hours, transport='walk', pinned_count=0):
@@ -802,10 +825,11 @@ def ai_recommend(request):
     """
     POST /api/places/ai-recommend/
     세션 설문 데이터 기반으로 Gemini가 장소를 추천(최대 10곳 순위)한 뒤,
-    관람시간 + 이동시간(도보 추정)의 합이 설문 소요시간 이내가 되는 만큼만 앞에서부터 남긴다
-    (최소 1곳은 항상 포함).
+    관람시간 + 이동시간(설문에서 선택한 이동수단 기준 추정)의 합이 설문 소요시간 이내가 되는 만큼만
+    앞에서부터 남긴다(최소 1곳은 항상 포함). 동선 범위(반경)는 유저 입력값이 아니라 소요시간·이동수단으로부터
+    AI 추천 로직이 자동으로 산정한다(_auto_radius_km).
     body: {
-      radius: <km, 기본 10>, retry: <bool, 재추천 여부 기본 false>,
+      retry: <bool, 재추천 여부 기본 false>,
       pinned_ids: <장소 탭에서 체크해 둔 "꼭 가고 싶은" 장소 id 목록, 결과에 항상 포함되고
                    그 주변 장소들이 우선적으로 채워진다>
     }
@@ -814,7 +838,6 @@ def ai_recommend(request):
     비로그인도 허용 (설문 데이터는 세션에 저장).
     """
     survey = request.session.get('survey_data', {})
-    radius = float(request.data.get('radius', 10))
     is_retry = bool(request.data.get('retry', False))
     pinned_ids = [int(i) for i in request.data.get('pinned_ids', []) if str(i).lstrip('-').isdigit()]
 
@@ -866,6 +889,7 @@ def ai_recommend(request):
         categories    = [i for i in interests if i in ('historic', 'museum', 'palace')]
 
     region = _REGION_DB_MAP.get(survey_region, '')
+    radius = _auto_radius_km(duration, survey.get('transport', 'walk'))
 
     # pinned 장소가 있으면 그 좌표 중심(centroid)을 기준으로 주변 장소를 채운다.
     pinned_places = list(Place.objects.select_related('theme').filter(pk__in=pinned_ids)) if pinned_ids else []
@@ -997,15 +1021,18 @@ def route_story(request):
     )
 
     prompt = (
-        '당신은 한국 문화유산 전문 여행 작가입니다.\n\n'
+        '당신은 한국 문화유산을 정말 잘 알고 있는 80대 할머니입니다.\n\n'
         f'오늘의 동선:\n{places_desc}\n\n'
         '이 장소들을 방문 순서대로 자연스럽게 잇는 여행 스토리텔링 내러티브를 작성하세요.\n\n'
         '요구사항:\n'
-        '- 4~5문장의 하나의 단락으로 작성\n'
+        '- 8~10 문장의 하나의 단락으로 작성\n'
         '- 역사적 사실과 감성적 묘사를 균형 있게 담을 것\n'
         '- 방문자가 시간 여행을 하는 듯한 몰입감을 줄 것\n'
         '- 장소명은 「」로 강조 (예: 「경복궁」)\n'
-        '- 순수 텍스트만 출력 (JSON·마크다운 없이)'
+        '- 순수 텍스트만 출력 (JSON·마크다운 없이)\n'
+        '- 손자에게 전래동화를 풀어주듯 사용자에게 이야기를 풀어주세요 \n'
+        '- 기승전결을 잘 지켜서 하나의 이야기처럼 엮어줘 \n'
+        '- 절대 역사적 사실을 왜곡해서는 안돼'
     )
 
     try:
@@ -1296,6 +1323,37 @@ def _osrm_route_leg(origin, destination, profile):
         }
     except Exception:
         return None
+
+
+def compute_route_path(ordered_places, transport_mode):
+    """
+    코스를 생성/수정하는 시점에 실제 이동수단 기준 경로(자동차=카카오모빌리티, 도보/자전거=OSRM)를
+    한 번만 계산해 Route.path_data에 저장해둔다. 조회할 때마다 외부 API를 다시 호출하지 않고
+    저장된 좌표로 곧장 곡선 경로를 그릴 수 있게 하기 위함.
+    대중교통/기차는 실제 경로 API가 없어 직선 좌표를 그대로 둔다(기존 route_directions/
+    route_transit_info의 구간 실패 시 대체 로직과 동일한 기준).
+    """
+    legs = []
+    for a, b in zip(ordered_places, ordered_places[1:]):
+        origin = (float(a.latitude), float(a.longitude))
+        destination = (float(b.latitude), float(b.longitude))
+        path = None
+
+        if transport_mode == 'car':
+            result = _kakao_directions_leg(origin, destination)
+            if result:
+                path = result['path']
+        elif transport_mode in _OSRM_PROFILE:
+            result = _osrm_route_leg(origin, destination, _OSRM_PROFILE[transport_mode])
+            straight_m = _haversine_km(a, b) * 1000
+            if result and (straight_m <= 0 or result['distance_m'] <= straight_m * 3):
+                path = result['path']
+
+        if not path:
+            path = [[origin[0], origin[1]], [destination[0], destination[1]]]
+        legs.append({'from_id': a.id, 'to_id': b.id, 'path': path})
+
+    return legs
 
 
 @api_view(['POST'])

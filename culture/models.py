@@ -125,6 +125,8 @@ class Route(models.Model):
     transport_mode = models.CharField(max_length=20, choices=TRANSPORT_CHOICES, default='car', verbose_name='이동수단')
     total_distance = models.PositiveIntegerField(default=0, verbose_name='총 거리 (m)')
     total_time     = models.PositiveIntegerField(default=0, verbose_name='총 소요시간 (분)')
+    path_data      = models.JSONField(default=list, blank=True,
+                                      verbose_name='실제 이동 경로 좌표 (생성 시점에 1회 계산해 저장)')
     is_shared      = models.BooleanField(default=False, verbose_name='커뮤니티 공유 여부')
     is_footprint   = models.BooleanField(default=False, verbose_name='여행 완료 시 자동 기록된 발자취 여부')
     like_count     = models.PositiveIntegerField(default=0, verbose_name='좋아요 수')

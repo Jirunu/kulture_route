@@ -216,7 +216,7 @@ class RouteDetailSerializer(serializers.ModelSerializer):
             'id', 'title', 'username', 'display_name', 'badge',
             'mode', 'mode_display',
             'transport_mode', 'transport_mode_display',
-            'total_distance', 'total_time',
+            'total_distance', 'total_time', 'path_data',
             'is_shared', 'like_count',
             'route_places', 'created_at',
         ]

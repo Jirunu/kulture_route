@@ -670,6 +670,19 @@ function closeRouteMap() {
 
 let _detailRouteId = null;
 
+/* 코스 생성 시점에 실제 이동수단 기준 경로(자동차=카카오모빌리티, 도보/자전거=OSRM)가
+   Route.path_data에 이미 저장되어 있으므로, 조회할 때는 그 좌표로 바로 곡선 폴리라인을 그린다.
+   (실시간 재계산 없음 — path_data가 없는 옛 코스나 대중교통/기차만 직선으로 표시) */
+function routePolylinePath(route, stops) {
+  const legs = route.path_data || [];
+  if (legs.some(leg => leg.path && leg.path.length > 1)) {
+    const path = [];
+    legs.forEach(leg => (leg.path || []).forEach(([lat, lng]) => path.push(new kakao.maps.LatLng(lat, lng))));
+    if (path.length > 1) return path;
+  }
+  return stops.map(p => new kakao.maps.LatLng(+p.latitude, +p.longitude));
+}
+
 async function openRouteMap(routeId, title) {
   _detailRouteId = routeId;
   document.getElementById('map-modal-title').textContent = title || '코스 상세';
@@ -718,13 +731,12 @@ async function openRouteMap(routeId, title) {
       const map = new kakao.maps.Map(container, { center, level: 6 });
       _routeMapInstance = map;
 
-      const path = stops.map(p => new kakao.maps.LatLng(+p.latitude, +p.longitude));
-
+      const path = routePolylinePath(route, stops);
       new kakao.maps.Polyline({
         path,
-        strokeWeight: 3,
+        strokeWeight: 4,
         strokeColor: '#10367D',
-        strokeOpacity: 0.8,
+        strokeOpacity: 0.85,
         strokeStyle: 'solid',
         map
       });
@@ -740,7 +752,7 @@ async function openRouteMap(routeId, title) {
       });
 
       const bounds = new kakao.maps.LatLngBounds();
-      path.forEach(pt => bounds.extend(pt));
+      stops.forEach(p => bounds.extend(new kakao.maps.LatLng(+p.latitude, +p.longitude)));
       map.setBounds(bounds);
 
       /* ── 방문 순서 이티너러리 ── */

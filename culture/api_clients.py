@@ -19,7 +19,7 @@ def fetch_heritage_list(page=1, size=100, area_code=1, content_type_id=14):
         "pageNo":        page,
         "numOfRows":     size,
         "MobileOS":      "ETC",
-        "MobileApp":     "CultureRoute",
+        "MobileApp":     "KultureRoute",
         "areaCode":      area_code,
         "contentTypeId": content_type_id,
         "arrange":       "Q",

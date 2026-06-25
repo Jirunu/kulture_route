@@ -154,11 +154,11 @@
       <p class="err-msg" id="err-4">장소 유형을 선택해 주세요.</p>
     </div>
 
-    <!-- ── STEP 5 : 소요 시간 + 동선 범위 ── -->
+    <!-- ── STEP 5 : 소요 시간 ── -->
     <div class="step-panel" id="step-5">
       <p class="step-eyebrow">Step 5</p>
-      <h2 class="step-title">시간과 동선 범위를 알려주세요</h2>
-      <p class="step-desc">하루 일정과 이동 범위에 맞는 코스를 구성합니다.</p>
+      <h2 class="step-title">희망하는 관람 시간을 알려주세요</h2>
+      <p class="step-desc">소요 시간에 맞춰 AI가 동선 범위까지 알아서 구성합니다.</p>
 
       <!-- 슬라이더 -->
       <div class="slider-section">
@@ -169,19 +169,6 @@
                oninput="updateDuration(this.value)">
         <div class="slider-ticks">
           <span>1시간 이내</span><span>3시간</span><span>6시간</span><span>6시간+</span>
-        </div>
-      </div>
-
-      <div class="sub-divider"></div>
-
-      <div class="slider-section">
-        <div class="slider-value-display" id="radius-display">10km</div>
-        <div class="slider-value-label">동선 범위 (추천 장소 간 최대 거리)</div>
-        <input type="range" class="survey-slider" id="radius-slider"
-               min="5" max="30" step="1" value="10"
-               oninput="updateRadius(this.value)">
-        <div class="slider-ticks">
-          <span>가까운 (5km)</span><span>먼 (30km)</span>
         </div>
       </div>
     </div>
@@ -245,12 +232,11 @@ const answers = {
   eras:       [],
   place_type: null,
   duration:   3,
-  radius:     10,
   visitors:   null,
   transport:  null,
 };
 
-const STEP_NAMES = ['거주 지역','관심 분야','시대 테마','장소 유형','시간·동선범위','인원·이동수단'];
+const STEP_NAMES = ['거주 지역','관심 분야','시대 테마','장소 유형','관람 시간','인원·이동수단'];
 
 /* ── 슬라이더 ─────────────────────────────────── */
 const DURATION_STEPS = [
@@ -266,14 +252,6 @@ function updateDuration(idx) {
   document.getElementById('dur-display').textContent = step.label;
   const pct = (idx / (DURATION_STEPS.length - 1) * 100).toFixed(1);
   document.getElementById('duration-slider').style.background =
-    `linear-gradient(to right, var(--gold-lt) ${pct}%, rgba(255,255,255,.22) ${pct}%)`;
-}
-
-function updateRadius(val) {
-  answers.radius = parseInt(val, 10);
-  document.getElementById('radius-display').textContent = val + 'km';
-  const pct = ((val - 5) / 25 * 100).toFixed(1);
-  document.getElementById('radius-slider').style.background =
     `linear-gradient(to right, var(--gold-lt) ${pct}%, rgba(255,255,255,.22) ${pct}%)`;
 }
 
@@ -383,6 +361,12 @@ async function submitSurvey() {
 
     if (!res.ok) throw new Error('서버 오류');
     const data = await res.json();
+    // 새 설문을 저장했으니 이전에 생성됐던(혹은 오래된) 동선이 그대로 복원되지 않도록 비워둔다.
+    localStorage.removeItem('cr_active_route_places');
+    localStorage.removeItem('cr_journey_ids');
+    localStorage.removeItem('cr_journey_visited');
+    localStorage.removeItem('cr_journey_memos');
+    localStorage.removeItem('cr_journey_step');
     window.location.href = data.redirect || '/loading/';
   } catch (e) {
     btn.disabled = false;
@@ -392,7 +376,6 @@ async function submitSurvey() {
 }
 
 updateDuration(document.getElementById('duration-slider').value);
-updateRadius(document.getElementById('radius-slider').value);
 
 /* CSRF 쿠키 미리 세팅 */
 fetch('/api/accounts/me/').catch(() => {});

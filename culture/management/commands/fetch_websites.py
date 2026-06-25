@@ -15,7 +15,7 @@ def get_homepage(content_id, key):
         "serviceKey":      key,
         "contentId":       content_id,
         "MobileOS":        "ETC",
-        "MobileApp":       "CultureRoute",
+        "MobileApp":       "KultureRoute",
         "defaultYN":       "Y",
         "homepageInfoYN":  "Y",
         "_type":           "json",

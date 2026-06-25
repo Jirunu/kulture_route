@@ -60,9 +60,9 @@
   function positionWidgetPanel() {
     const fabRect = fab.getBoundingClientRect();
     const panelW = widget.offsetWidth || 340, panelH = widget.offsetHeight || 420;
-    // 기본적으로 캐릭터의 좌측 위쪽에 패널을 띄우고, 화면 밖으로 나가면 반대쪽으로 보정
-    let x = fabRect.left - panelW - 12;
-    if (x < 8) x = Math.min(fabRect.right + 12, window.innerWidth - panelW - 8);
+    // 기본적으로 캐릭터의 우측 위쪽에 패널을 띄우고, 화면 밖으로 나가면 반대쪽으로 보정
+    let x = fabRect.right + 12;
+    if (x + panelW > window.innerWidth - 8) x = Math.max(fabRect.left - panelW - 12, 8);
     x = clamp(x, 8, window.innerWidth - panelW - 8);
     let y = fabRect.top + fabRect.height * 0.15 - panelH;
     if (y < 8) y = clamp(fabRect.bottom - panelH * 0.2, 8, window.innerHeight - panelH - 8);
