@@ -362,7 +362,7 @@ async function fetchRoutes() {
       return;
     }
     allRoutes = data;
-    renderRoutes(data);
+    applyFilters();
   } catch(e) {
     grid.innerHTML = `<div class="state-box"><p>오류: ${e.message}</p></div>`;
   }
